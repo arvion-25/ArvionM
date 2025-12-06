@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Display Player</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    html,body{height:100%;margin:0;background:#000}
+    video{width:100%;height:100%;object-fit:contain;background:#000}
+    #fsBtn{position:fixed;top:12px;right:12px;z-index:50;padding:8px;background:#333;color:#fff;border:none;border-radius:6px}
+    #preloader{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  </style>
+</head>
+<body>
+  <button id="fsBtn">Toggle Fullscreen</button>
+  <video id="player" autoplay muted playsinline preload="auto"></video>
+  <video id="preloader" muted preload="auto"></video>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+
+  <script>
+    const player = document.getElementById('player'), fsBtn = document.getElementById('fsBtn');
+    const preloadVideo = document.getElementById('preloader');
+
+    async function loadAndPlay(){
+      const currentUser = sessionStorage.getItem('logged_user');
+      if (!currentUser) {
+        document.body.innerHTML = '<div style="color:#fff;padding:20px">Please login first.</div>';
+        return;
+      }
+
+      // Get videos assigned to this user from database
+      const { data: videoRecords, error: dbError } = await supabase
+        .from('videos')
+        .select('storage_path')
+        .eq('display_user', currentUser)
+        .order('uploaded_at', { ascending: false });
+
+      if (dbError || !videoRecords || videoRecords.length === 0) {
+        document.body.innerHTML = '<div style="color:#fff;padding:20px">No videos assigned to this display.</div>';
+        return;
+      }
+
+      // Get public URLs for videos
+      const urls = videoRecords.map(v => 
+        supabase.storage.from('ads-videos').getPublicUrl(v.storage_path).data.publicUrl
+      );
+
+      if (urls.length === 0) {
+        document.body.innerHTML = '<div style="color:#fff;padding:20px">No playable videos.</div>';
+        return;
+      }
+
+      let idx = 0;
+      
+      async function setSrc(i){
+        player.src = urls[i];
+        try { await player.play(); } catch(e) { console.warn(e); }
+        
+        // Preload next video
+        const nextIdx = (i + 1) % urls.length;
+        preloadVideo.src = urls[nextIdx];
+      }
+      
+      player.addEventListener('ended', ()=>{ idx = (idx+1) % urls.length; setSrc(idx); });
+      await setSrc(0);
+    }
+
+    async function sendHeartbeat(){
+      const loginId = sessionStorage.getItem('login_id');
+      if (!loginId) return;
+      try { 
+        await supabase.from('login_history')
+          .update({ last_ping: new Date().toISOString() })
+          .eq('id', loginId); 
+      }
+      catch(e){ console.warn('heartbeat failed', e); }
+    }
+
+    function sendLogoutKeepalive(){
+      const loginId = sessionStorage.getItem('login_id');
+      if (!loginId) return;
+
+      try {
+        supabase.channel('login_updates').send({
+          type: 'broadcast',
+          event: 'logout',
+          payload: { login_id: loginId, ts: new Date().toISOString() }
+        });
+      } catch(e) { console.warn('broadcast logout failed', e); }
+
+      const payload = JSON.stringify({ lid: loginId, ts: new Date().toISOString() });
+      const url = `${SUPABASE_URL}/rest/v1/rpc/record_logout`;
+      
+      try {
+        if (navigator.sendBeacon) {
+          const beaconUrl = `${SUPABASE_URL}/rest/v1/rpc/record_logout?lid=${encodeURIComponent(loginId)}&ts=${encodeURIComponent(new Date().toISOString())}&apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}`;
+          const blob = new Blob([], { type: 'text/plain' });
+          navigator.sendBeacon(beaconUrl, blob);
+        }
+        
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          },
+          body: payload,
+          keepalive: true
+        }).catch(()=>{});
+      } catch(e) {
+        console.warn('logout POST failed', e);
+      }
+    }
+
+    window.addEventListener('beforeunload', sendLogoutKeepalive);
+    setInterval(sendHeartbeat, 20000);
+    
+    fsBtn.onclick = async () => {
+      if (!document.fullscreenElement) await player.requestFullscreen().catch(()=>{});
+      else document.exitFullscreen().catch(()=>{});
+    };
+
+    loadAndPlay();
+    sendHeartbeat();
+  </script>
+</body>
+</html>

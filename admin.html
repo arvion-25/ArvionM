@@ -1,0 +1,396 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin Panel - Ad Screen</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 32px 40px;
+      border-bottom: 4px solid rgba(255,255,255,0.2);
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+    
+    .content {
+      padding: 40px;
+    }
+    
+    section {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 28px;
+      margin-bottom: 28px;
+      border: 1px solid #e9ecef;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    section:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    
+    h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #2d3748;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    h2::before {
+      content: '';
+      width: 4px;
+      height: 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 2px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    #uploadForm, #createUserForm {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    
+    input[type="file"] {
+      padding: 10px 16px;
+      border: 2px dashed #cbd5e0;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+    
+    input[type="file"]:hover {
+      border-color: #667eea;
+      background: #f7fafc;
+    }
+    
+    input[type="text"],
+    input[type="password"],
+    input[type="date"],
+    select {
+      padding: 10px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      transition: all 0.3s ease;
+    }
+    
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="date"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+      color: #4a5568;
+      margin-right: 12px;
+      margin-bottom: 10px;
+    }
+    
+    #videoList, #usersList {
+      list-style: none;
+      padding: 0;
+    }
+    
+    #videoList li, #usersList li {
+      background: white;
+      padding: 16px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+    
+    #videoList li:hover, #usersList li:hover {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #4a5568;
+      font-size: 14px;
+    }
+    
+    tbody tr {
+      transition: background-color 0.2s ease;
+    }
+    
+    tbody tr:hover {
+      background-color: #f7fafc;
+    }
+    
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .user-agent {
+      max-width: 480px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #718096;
+    }
+    
+    .delete-btn {
+      background: linear-gradient(135deg, #f56565 0%, #c53030 100%);
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(245, 101, 101, 0.3);
+    }
+    
+    .delete-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(245, 101, 101, 0.4);
+    }
+    
+    .controls-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .user-filter {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #e6f7ff;
+      color: #0066cc;
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 12px;
+      }
+      
+      .content {
+        padding: 20px;
+      }
+      
+      .header {
+        padding: 24px 20px;
+      }
+      
+      h1 {
+        font-size: 24px;
+      }
+      
+      section {
+        padding: 20px;
+      }
+      
+      table {
+        font-size: 12px;
+      }
+      
+      th, td {
+        padding: 10px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Admin Panel</h1>
+    </div>
+    <div class="content">
+      
+      <!-- Create Display User Section -->
+      <section>
+        <h2>Create Display User</h2>
+        <form id="createUserForm">
+          <input type="text" id="newUsername" placeholder="Username (e.g., user1, user2)" required />
+          <input type="password" id="newPassword" placeholder="Password" required />
+          <button type="submit">Create User</button>
+        </form>
+      </section>
+
+      <!-- Manage Display Users Section -->
+      <section>
+        <h2>Display Users</h2>
+        <ul id="usersList">Loading users...</ul>
+      </section>
+      
+      <!-- Upload Video Section -->
+      <section>
+        <h2>Upload Video</h2>
+        <form id="uploadForm">
+          <select id="targetUser" required>
+            <option value="">Select Display User</option>
+          </select>
+          <input type="file" name="video" accept="video/*" required />
+          <button type="submit">Upload</button>
+        </form>
+      </section>
+      
+      <!-- Uploaded Videos Section -->
+      <section>
+        <h2>Uploaded Videos</h2>
+        <div class="user-filter">
+          <label>Filter by User:</label>
+          <select id="videoFilterUser">
+            <option value="">All Users</option>
+          </select>
+          <button id="filterVideosBtn">Filter</button>
+        </div>
+        <ul id="videoList">Loading videos...</ul>
+      </section>
+      
+      <!-- User Display Login History Section -->
+      <section>
+        <h2>User Display Login History</h2>
+        <div class="controls-group">
+          <label>
+            Select User:
+            <select id="historyUserFilter">
+              <option value="">All Users</option>
+            </select>
+          </label>
+          <label>
+            Select date:
+            <input type="date" id="filterDate" />
+          </label>
+          <button id="filterBtn">Filter</button>
+          <button id="refreshBtn">Refresh</button>
+          <button id="exportAllBtn">Export All</button>
+          <button id="exportFilteredBtn">Export Selected</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Login (IST)</th>
+              <th>Logout (IST)</th>
+              <th>Device</th>
+              <th>User-Agent</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+  <script src="admin-script.js"></script>
+</body>
+</html>

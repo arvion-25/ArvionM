@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Login - Arvion Ad Screen</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-container {
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      max-width: 440px;
+      width: 100%;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .logo-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px 30px;
+      text-align: center;
+    }
+
+    .logo-section img {
+      max-width: 280px;
+      height: auto;
+      filter: brightness(0) invert(1);
+    }
+
+    .form-section {
+      padding: 40px 35px;
+    }
+
+    h2 {
+      color: #2d3748;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: #718096;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      color: #4a5568;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 15px;
+      transition: all 0.3s ease;
+      background: #f7fafc;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    #msg {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+      display: none;
+    }
+
+    #msg.error {
+      background: #fed7d7;
+      color: #c53030;
+      border: 1px solid #fc8181;
+      display: block;
+    }
+
+    #msg.success {
+      background: #c6f6d5;
+      color: #2f855a;
+      border: 1px solid #9ae6b4;
+      display: block;
+    }
+
+    #msg.info {
+      background: #bee3f8;
+      color: #2c5282;
+      border: 1px solid #90cdf4;
+      display: block;
+    }
+
+    @media (max-width: 480px) {
+      .logo-section {
+        padding: 30px 20px;
+      }
+
+      .form-section {
+        padding: 30px 25px;
+      }
+
+      h2 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo-section">
+      <img src="arvion_word_only_clean.png" alt="Arvion Logo" />
+    </div>
+    
+    <div class="form-section">
+      <h2>Welcome Back</h2>
+      <p class="subtitle">Sign in to access your ad screen</p>
+      
+      <form id="loginForm">
+        <div class="input-group">
+          <label for="username">Username</label>
+          <input id="username" type="text" placeholder="Enter your username" required autocomplete="username" />
+        </div>
+        
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="Enter your password" required autocomplete="current-password" />
+        </div>
+        
+        <button type="submit">Sign In</button>
+        <div id="msg"></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+
+  <script>
+  async function getDeviceInfo(){
+    const ua = navigator.userAgent || '';
+    const info = { model:null, platform:null, os:null, osVersion:null, browser:null, browserVersion:null, ua:ua };
+    if (navigator.userAgentData?.getHighEntropyValues){
+      try {
+        const hi = await navigator.userAgentData.getHighEntropyValues(['platform','model','uaFullVersion']);
+        info.platform = hi.platform || navigator.platform || '';
+        if (hi.model) info.model = hi.model;
+        if (hi.uaFullVersion) info.browserVersion = hi.uaFullVersion;
+        if (navigator.userAgentData.brands) info.browser = navigator.userAgentData.brands.map(b=>b.brand).join(' ');
+      } catch(e){}
+    }
+    const a = ua.match(/Android\s*([\d.]*);\s*([^;)\r\n]+)\s*(?:Build\/|;)/i);
+    if (a){ info.os='Android'; info.osVersion=a[1]||null; if(!info.model) info.model=a[2].trim(); }
+    else {
+      const ios = ua.match(/\((iPhone|iPad).*OS\s([\d_]+)/i);
+      if (ios){ info.os='iOS'; info.osVersion=ios[2].replace(/_/g,'.'); info.model=ios[1]; }
+      else {
+        if (/Windows NT/i.test(ua)) info.os='Windows';
+        else if (/Macintosh/i.test(ua)) info.os='macOS';
+        else if (/Linux/i.test(ua)) info.os='Linux';
+        const b = ua.match(/(Firefox|Chrome|CriOS|Edg|Safari)\/([\d.]+)/i);
+        if (b){ info.browser=b[1]; info.browserVersion=b[2]; }
+      }
+    }
+    if (!info.model) info.model = info.platform || ua.slice(0,60);
+    return info;
+  }
+
+  const form = document.getElementById('loginForm'), msg = document.getElementById('msg');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msg.className = 'info';
+    msg.textContent = 'Signing in...';
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    try {
+      const { data, error } = await supabase.rpc('verify_user', { un: username, pwd: password });
+      if (error) { 
+        console.error(error); 
+        msg.className = 'error';
+        msg.textContent = 'Server error. Please try again.'; 
+        return; 
+      }
+      if (!data || data.length === 0) { 
+        msg.className = 'error';
+        msg.textContent = 'Invalid username or password'; 
+        return; 
+      }
+
+      const row = data[0];
+      const loginId = row.login_id;
+      if (!loginId) { 
+        msg.className = 'error';
+        msg.textContent = 'Login failed. Please try again.'; 
+        return; 
+      }
+
+      const dev = await getDeviceInfo();
+      const device_model = dev.model || dev.platform || dev.ua.slice(0,60);
+      await supabase.from('login_history').update({
+        user_name: username,
+        device_model: device_model,
+        user_agent: dev.ua,
+        last_ping: new Date().toISOString()
+      }).eq('id', loginId);
+
+      sessionStorage.setItem('login_id', loginId);
+      sessionStorage.setItem('logged_user', username);
+
+      try {
+        supabase.channel('login_updates').send({
+          type: 'broadcast',
+          event: 'login',
+          payload: { login_id: loginId, username, ts: new Date().toISOString() }
+        });
+      } catch(e) { console.warn('broadcast login failed', e); }
+
+      msg.className = 'success';
+      msg.textContent = 'Login successful! Redirecting...';
+
+      setTimeout(() => {
+        if (row.role === 'admin') window.location.href = 'admin.html';
+        else window.location.href = 'display.html';
+      }, 500);
+    } catch (err) {
+      console.error(err);
+      msg.className = 'error';
+      msg.textContent = 'Network error. Please check your connection.';
+    }
+  });
+  </script>
+</body>
+</html>
