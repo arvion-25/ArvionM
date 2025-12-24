@@ -48,6 +48,15 @@ async function populateUserDropdowns() {
   users.forEach(u => {
     historyFilter.innerHTML += `<option value="${u.username}">${u.username}</option>`;
   });
+
+  // Populate export user select dropdown (single shared dropdown)
+  const exportUserSelect = document.getElementById('exportUserSelect');
+  if (exportUserSelect) {
+    exportUserSelect.innerHTML = '<option value="">All Users</option>';
+    users.forEach(u => {
+      exportUserSelect.innerHTML += `<option value="${u.username}">${u.username}</option>`;
+    });
+  }
 }
 
 // ---------- Display Users List ----------
@@ -369,58 +378,166 @@ function csvFromRows(rows) {
   return out;
 }
 
-document.getElementById('exportAllBtn').onclick = async () => {
-  const { data, error } = await supabase.from('login_history')
-    .select('*')
-    .neq('user_name', 'admin')
-    .order('login_time', { ascending: false });
-  
-  if (error) {
-    alert('Export failed');
-    console.error(error);
-    return;
-  }
-  
-  const blob = new Blob([csvFromRows(data || [])], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'history-all.csv';
-  a.click();
-};
-
-document.getElementById('exportFilteredBtn').onclick = async () => {
-  const date = document.getElementById('filterDate').value;
-  const user = document.getElementById('historyUserFilter').value;
-  
-  let query = supabase.from('login_history')
-    .select('*')
-    .neq('user_name', 'admin')
-    .order('login_time', { ascending: false });
-  
-  if (user) {
-    query = query.eq('user_name', user);
-  }
-  
-  if (date) {
-    const start = new Date(date + 'T00:00:00Z').toISOString();
-    const end = new Date(date + 'T23:59:59Z').toISOString();
-    query = query.gte('login_time', start).lte('login_time', end);
-  }
-  
-  const { data, error } = await query;
-  
-  if (error) {
-    alert('Export failed');
-    console.error(error);
-    return;
-  }
-  
-  const filename = `history-${user || 'all'}-${date || 'all'}.csv`;
-  const blob = new Blob([csvFromRows(data || [])], { type: 'text/csv' });
+function downloadCSV(csvContent, filename) {
+  const blob = new Blob([csvContent], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = filename;
   a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Export All History
+document.getElementById('exportAllBtn').onclick = async () => {
+  const btn = document.getElementById('exportAllBtn');
+  const user = document.getElementById('exportUserSelect').value;
+  
+  btn.disabled = true;
+  btn.textContent = 'Exporting...';
+  
+  try {
+    let query = supabase.from('login_history')
+      .select('*')
+      .neq('user_name', 'admin')
+      .order('login_time', { ascending: false });
+    
+    if (user) {
+      query = query.eq('user_name', user);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      alert('Export failed');
+      console.error(error);
+      return;
+    }
+    
+    if (!data || data.length === 0) {
+      alert('No records found' + (user ? ' for selected user' : ''));
+      return;
+    }
+    
+    const filename = user ? `history-${user}-all.csv` : 'history-all.csv';
+    const csv = csvFromRows(data);
+    downloadCSV(csv, filename);
+    alert(`Exported ${data.length} records successfully!`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Export All History';
+  }
+};
+
+// Export Selected Date
+document.getElementById('exportSelectedBtn').onclick = async () => {
+  const btn = document.getElementById('exportSelectedBtn');
+  const date = document.getElementById('exportSingleDate').value;
+  const user = document.getElementById('exportUserSelect').value;
+  
+  if (!date) {
+    alert('Please select a date');
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = 'Exporting...';
+  
+  try {
+    let query = supabase.from('login_history')
+      .select('*')
+      .neq('user_name', 'admin')
+      .order('login_time', { ascending: false });
+    
+    if (user) {
+      query = query.eq('user_name', user);
+    }
+    
+    const start = new Date(date + 'T00:00:00Z').toISOString();
+    const end = new Date(date + 'T23:59:59Z').toISOString();
+    query = query.gte('login_time', start).lte('login_time', end);
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      alert('Export failed');
+      console.error(error);
+      return;
+    }
+    
+    if (!data || data.length === 0) {
+      alert('No records found for selected date' + (user ? ' and user' : ''));
+      return;
+    }
+    
+    const filename = user ? `history-${user}-${date}.csv` : `history-${date}.csv`;
+    const csv = csvFromRows(data);
+    downloadCSV(csv, filename);
+    alert(`Exported ${data.length} records successfully!`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Export Selected Date';
+  }
+};
+
+// Export Date Range
+document.getElementById('exportRangeBtn').onclick = async () => {
+  const btn = document.getElementById('exportRangeBtn');
+  const startDate = document.getElementById('exportStartDate').value;
+  const endDate = document.getElementById('exportEndDate').value;
+  const user = document.getElementById('exportUserSelect').value;
+  
+  if (!startDate || !endDate) {
+    alert('Please select both start and end dates');
+    return;
+  }
+  
+  if (new Date(startDate) > new Date(endDate)) {
+    alert('Start date must be before or equal to end date');
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = 'Exporting...';
+  
+  try {
+    const start = new Date(startDate + 'T00:00:00Z').toISOString();
+    const end = new Date(endDate + 'T23:59:59Z').toISOString();
+    
+    let query = supabase.from('login_history')
+      .select('*')
+      .neq('user_name', 'admin')
+      .gte('login_time', start)
+      .lte('login_time', end)
+      .order('login_time', { ascending: false });
+    
+    if (user) {
+      query = query.eq('user_name', user);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      alert('Export failed');
+      console.error(error);
+      return;
+    }
+    
+    if (!data || data.length === 0) {
+      alert('No records found for selected date range' + (user ? ' and user' : ''));
+      return;
+    }
+    
+    const filename = user 
+      ? `history-${user}-${startDate}-to-${endDate}.csv`
+      : `history-${startDate}-to-${endDate}.csv`;
+    const csv = csvFromRows(data);
+    downloadCSV(csv, filename);
+    
+    alert(`Exported ${data.length} records successfully!`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Export Date Range';
+  }
 };
 
 // ---------- Filter Buttons ----------
