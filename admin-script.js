@@ -335,12 +335,12 @@ async function loadHistory(filterDate = null, filterUser = null) {
     
     if (error) {
       console.error('Load history error:', error);
-      tbody.innerHTML = previousHTML || '<tr><td colspan="5">Error loading history</td></tr>';
+      tbody.innerHTML = previousHTML || '<tr><td colspan="4">Error loading history</td></tr>';
       return;
     }
     
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No records found</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center">No records found</td></tr>';
       return;
     }
     
@@ -358,22 +358,21 @@ async function loadHistory(filterDate = null, filterUser = null) {
         <td>${toIST(r.login_time)}</td>
         <td>${logoutDisplay}</td>
         <td>${r.device_model || ''}</td>
-        <td class="user-agent" title="${r.user_agent || ''}">${r.user_agent || ''}</td>
       `;
       tbody.appendChild(tr);
     });
   } catch (e) {
     console.error('Unexpected error loading history:', e);
-    tbody.innerHTML = previousHTML || '<tr><td colspan="5">Error loading history</td></tr>';
+    tbody.innerHTML = previousHTML || '<tr><td colspan="4">Error loading history</td></tr>';
   }
 }
 
 // ---------- Export Functions ----------
 function csvFromRows(rows) {
-  let out = 'Username,Login (IST),Logout (IST),Device,User-Agent\n';
+  let out = 'Username,Login (IST),Logout (IST),Device\n';
   rows.forEach(r => {
     const logout = r.logout_time ? toIST(r.logout_time) : (r.last_ping ? toIST(r.last_ping) + ' (detected offline)' : '');
-    out += `"${r.user_name}","${toIST(r.login_time)}","${logout}","${r.device_model || ''}","${(r.user_agent || '').replace(/"/g, '""')}"\n`;
+    out += `"${r.user_name}","${toIST(r.login_time)}","${logout}","${r.device_model || ''}"\n`;
   });
   return out;
 }
