@@ -205,58 +205,99 @@
     const ua = navigator.userAgent || '';
     const info = { model:null, platform:null, os:null, osVersion:null, browser:null, browserVersion:null, ua:ua };
     
-    // Try User-Agent Client Hints API first (modern browsers)
+    // Try User-Agent Client Hints API first (this gives real device info on modern browsers)
     if (navigator.userAgentData?.getHighEntropyValues){
       try {
-        const hi = await navigator.userAgentData.getHighEntropyValues(['platform','model','platformVersion','uaFullVersion']);
-        info.platform = hi.platform || navigator.platform || '';
-        if (hi.model) info.model = hi.model;
-        if (hi.platformVersion) info.osVersion = hi.platformVersion;
-        if (hi.uaFullVersion) info.browserVersion = hi.uaFullVersion;
-        if (navigator.userAgentData.brands) {
-          const brands = navigator.userAgentData.brands.filter(b => !b.brand.includes('Not'));
-          info.browser = brands.map(b=>b.brand).join(' ');
+        const hi = await navigator.userAgentData.getHighEntropyValues([
+          'platform',
+          'platformVersion',
+          'model',
+          'uaFullVersion',
+          'architecture',
+          'bitness',
+          'fullVersionList'
+        ]);
+        
+        console.log('Client Hints Data:', hi); // Debug log
+        
+        // Get platform and version from Client Hints (more accurate)
+        if (hi.platform) {
+          info.platform = hi.platform;
+          if (hi.platform === 'Android') {
+            info.os = 'Android';
+            info.osVersion = hi.platformVersion || null;
+          }
         }
-      } catch(e){ console.warn('User-Agent Client Hints failed:', e); }
+        
+        // Get actual device model from Client Hints
+        if (hi.model && hi.model !== '') {
+          info.model = hi.model;
+          console.log('Model from Client Hints:', hi.model);
+        }
+        
+        // Get browser info from Client Hints
+        if (hi.fullVersionList && hi.fullVersionList.length > 0) {
+          const mainBrowser = hi.fullVersionList.find(b => 
+            b.brand.includes('Chrome') || b.brand.includes('Edge') || b.brand.includes('Opera')
+          );
+          if (mainBrowser) {
+            info.browser = mainBrowser.brand;
+            info.browserVersion = mainBrowser.version;
+          }
+        } else if (hi.uaFullVersion) {
+          info.browserVersion = hi.uaFullVersion;
+        }
+      } catch(e){ 
+        console.warn('User-Agent Client Hints failed:', e); 
+      }
     }
     
-    // Check for mobile devices first (most specific to least specific)
+    // Fallback to User-Agent string parsing if Client Hints didn't provide everything
     
-    // Android detection - MUST be checked before Linux
-    if (/Android/i.test(ua)) {
-      info.os = 'Android';
+    // Android detection
+    if (/Android/i.test(ua) || info.os === 'Android') {
+      if (!info.os) info.os = 'Android';
       
-      // Extract Android version
-      const versionMatch = ua.match(/Android[\s\/]?([\d.]+)/i);
-      if (versionMatch) info.osVersion = versionMatch[1];
-      
-      // Extract device model - try multiple patterns
-      let deviceModel = null;
-      
-      // Pattern 1: Android X.X; MODEL Build/
-      let match = ua.match(/Android[^;]*;\s*([^;)]+?)\s+Build/i);
-      if (match) deviceModel = match[1];
-      
-      // Pattern 2: Android X.X; MODEL)
-      if (!deviceModel) {
-        match = ua.match(/Android[^;]*;\s*([^;)]+)\)/i);
-        if (match) deviceModel = match[1];
+      // Extract Android version from UA if not already set
+      if (!info.osVersion) {
+        const versionMatch = ua.match(/Android[\s\/]?([\d.]+)/i);
+        if (versionMatch) info.osVersion = versionMatch[1];
       }
       
-      // Pattern 3: (Linux; Android X.X; MODEL)
-      if (!deviceModel) {
-        match = ua.match(/\(Linux;\s*Android[^;]*;\s*([^)]+)\)/i);
-        if (match) deviceModel = match[1];
-      }
-      
-      if (deviceModel) {
-        // Clean up the model name
-        deviceModel = deviceModel.trim();
-        deviceModel = deviceModel.replace(/^(SAMSUNG[\s-]?|SM-)/i, '');
-        deviceModel = deviceModel.replace(/\s+Build.*$/i, '');
-        info.model = deviceModel;
-      } else {
-        info.model = 'Android Device';
+      // Extract device model from UA if not already set by Client Hints
+      if (!info.model || info.model === 'K' || info.model.length <= 2) {
+        let deviceModel = null;
+        
+        // Pattern 1: Android X.X; MODEL Build/
+        let match = ua.match(/Android[^;]*;\s*([^;)]+?)\s+Build/i);
+        if (match && match[1]) deviceModel = match[1];
+        
+        // Pattern 2: Android X.X; MODEL)
+        if (!deviceModel) {
+          match = ua.match(/Android[^;]*;\s*([^;)]+)\)/i);
+          if (match && match[1]) deviceModel = match[1];
+        }
+        
+        // Pattern 3: (Linux; Android X.X; MODEL)
+        if (!deviceModel) {
+          match = ua.match(/\(Linux;\s*Android[^;]*;\s*([^)]+)\)/i);
+          if (match && match[1]) deviceModel = match[1];
+        }
+        
+        if (deviceModel) {
+          deviceModel = deviceModel.trim();
+          // Only use if it's not a generic placeholder
+          if (deviceModel.length > 2 && deviceModel !== 'K') {
+            deviceModel = deviceModel.replace(/^(SAMSUNG[\s-]?|SM-)/i, '');
+            deviceModel = deviceModel.replace(/\s+Build.*$/i, '');
+            info.model = deviceModel;
+          }
+        }
+        
+        // If still generic, use a descriptive name
+        if (!info.model || info.model === 'K' || info.model.length <= 2) {
+          info.model = 'Android Device (Privacy Mode)';
+        }
       }
     }
     // iOS detection
@@ -299,7 +340,7 @@
       info.model = navigator.platform || 'Unknown Device';
     }
     
-    // Browser detection
+    // Browser detection from UA string if not set
     if (!info.browser) {
       const browserPatterns = [
         { name: 'Edge', pattern: /Edg[e]?\/([\d.]+)/i },
@@ -319,6 +360,7 @@
       }
     }
     
+    console.log('Final Device Info:', info); // Debug log
     return info;
   }
 
