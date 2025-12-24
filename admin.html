@@ -274,6 +274,34 @@
       background: #e6f7ff;
       color: #0066cc;
     }
+
+    .export-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 16px;
+      border: 2px solid #e2e8f0;
+    }
+
+    .export-section h3 {
+      font-size: 16px;
+      color: #2d3748;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .date-range-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .date-range-group span {
+      color: #4a5568;
+      font-weight: 500;
+    }
     
     @media (max-width: 768px) {
       body {
@@ -370,9 +398,48 @@
           </label>
           <button id="filterBtn">Filter</button>
           <button id="refreshBtn">Refresh</button>
-          <button id="exportAllBtn">Export All</button>
-          <button id="exportFilteredBtn">Export Selected</button>
         </div>
+
+        <!-- Export Options -->
+        <div class="export-section">
+          <h3>Export Options</h3>
+          
+          <div class="date-range-group" style="margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 16px;">
+            <label>
+              <strong>Select User:</strong>
+              <select id="exportUserSelect">
+                <option value="">All Users</option>
+              </select>
+            </label>
+          </div>
+          
+          <div style="margin-bottom: 16px;">
+            <button id="exportAllBtn">Export All History</button>
+          </div>
+          
+          <div class="date-range-group">
+            <span>Export Single Date:</span>
+            <label>
+              Date:
+              <input type="date" id="exportSingleDate" />
+            </label>
+            <button id="exportSelectedBtn">Export Selected Date</button>
+          </div>
+          
+          <div class="date-range-group" style="margin-top: 16px;">
+            <span>Export Date Range:</span>
+            <label>
+              From:
+              <input type="date" id="exportStartDate" />
+            </label>
+            <label>
+              To:
+              <input type="date" id="exportEndDate" />
+            </label>
+            <button id="exportRangeBtn">Export Date Range</button>
+          </div>
+        </div>
+
         <table>
           <thead>
             <tr>
