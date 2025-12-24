@@ -220,32 +220,43 @@
       } catch(e){ console.warn('User-Agent Client Hints failed:', e); }
     }
     
-    // Android detection - prioritize this before Linux check
-    const androidMatch = ua.match(/Android\s*([\d.]*)[;)]/i);
-    if (androidMatch || /Android/i.test(ua)) {
+    // Check for mobile devices first (most specific to least specific)
+    
+    // Android detection - MUST be checked before Linux
+    if (/Android/i.test(ua)) {
       info.os = 'Android';
-      info.osVersion = androidMatch ? androidMatch[1] : null;
       
-      // Extract device model from various patterns
-      const modelPatterns = [
-        /Android[^;]*;\s*([^;)]+)\s+Build\//i,  // Standard: Android X.X; Model Build/
-        /Android[^;]*;\s*([^;)]+)\)/i,          // Fallback: Android X.X; Model)
-        /\(Linux;\s*Android[^;]*;\s*([^)]+)\)/i // Alternative: (Linux; Android X.X; Model)
-      ];
+      // Extract Android version
+      const versionMatch = ua.match(/Android[\s\/]?([\d.]+)/i);
+      if (versionMatch) info.osVersion = versionMatch[1];
       
-      for (const pattern of modelPatterns) {
-        const match = ua.match(pattern);
-        if (match && match[1]) {
-          let model = match[1].trim();
-          // Clean up common prefixes
-          model = model.replace(/^(Build\/|SAMSUNG[\s-]?)/i, '');
-          // Remove build codes at the end
-          model = model.replace(/\s+Build.*$/i, '');
-          if (model && model.length > 2 && !info.model) {
-            info.model = model;
-            break;
-          }
-        }
+      // Extract device model - try multiple patterns
+      let deviceModel = null;
+      
+      // Pattern 1: Android X.X; MODEL Build/
+      let match = ua.match(/Android[^;]*;\s*([^;)]+?)\s+Build/i);
+      if (match) deviceModel = match[1];
+      
+      // Pattern 2: Android X.X; MODEL)
+      if (!deviceModel) {
+        match = ua.match(/Android[^;]*;\s*([^;)]+)\)/i);
+        if (match) deviceModel = match[1];
+      }
+      
+      // Pattern 3: (Linux; Android X.X; MODEL)
+      if (!deviceModel) {
+        match = ua.match(/\(Linux;\s*Android[^;]*;\s*([^)]+)\)/i);
+        if (match) deviceModel = match[1];
+      }
+      
+      if (deviceModel) {
+        // Clean up the model name
+        deviceModel = deviceModel.trim();
+        deviceModel = deviceModel.replace(/^(SAMSUNG[\s-]?|SM-)/i, '');
+        deviceModel = deviceModel.replace(/\s+Build.*$/i, '');
+        info.model = deviceModel;
+      } else {
+        info.model = 'Android Device';
       }
     }
     // iOS detection
@@ -268,7 +279,7 @@
         };
         info.osVersion = versionMap[ntVersion] || ntVersion;
       }
-      info.model = 'PC';
+      info.model = 'Windows PC';
     }
     // macOS detection
     else if (/Macintosh/i.test(ua)) {
@@ -277,10 +288,15 @@
       if (macMatch) info.osVersion = macMatch[1].replace(/_/g, '.');
       info.model = 'Mac';
     }
-    // Linux detection (desktop only, after Android check)
-    else if (/Linux/i.test(ua) && !/Android/i.test(ua)) {
+    // Linux detection (desktop only, after all mobile checks)
+    else if (/Linux/i.test(ua)) {
       info.os = 'Linux';
-      info.model = 'PC';
+      info.model = 'Linux PC';
+    }
+    // Fallback
+    else {
+      info.os = 'Unknown';
+      info.model = navigator.platform || 'Unknown Device';
     }
     
     // Browser detection
@@ -301,13 +317,6 @@
           break;
         }
       }
-    }
-    
-    // Fallback for model if still not set
-    if (!info.model) {
-      if (info.os === 'Android') info.model = 'Android Device';
-      else if (info.os === 'iOS') info.model = 'iOS Device';
-      else info.model = info.platform || 'Unknown Device';
     }
     
     return info;
