@@ -205,11 +205,32 @@ async function listVideos(filterUser = null) {
     videoRecords.forEach(video => {
       const li = document.createElement('li');
       const uploadDate = new Date(video.uploaded_at).toLocaleDateString();
+      
+      // Build duration info
+      let durationInfo = '';
+      if (video.duration_days) {
+        const daysRemaining = video.duration_days - (video.days_used || 0);
+        
+        if (video.is_expired) {
+          durationInfo = `<span class="badge">Duration: ${video.duration_days} days</span>
+                          <span class="badge">Used: ${video.days_used || 0} days</span>
+                          <span class="badge" style="background:#fed7d7;color:#c53030;">⚠️ Expired</span>`;
+        } else {
+          const expiryColor = daysRemaining <= 5 ? 'background:#fff3cd;color:#856404;' : 'background:#c6f6d5;color:#2f855a;';
+          durationInfo = `<span class="badge">Duration: ${video.duration_days} days</span>
+                          <span class="badge">Used: ${video.days_used || 0} days</span>
+                          <span class="badge" style="${expiryColor}">⏱️ ${daysRemaining} days to expire</span>`;
+        }
+      } else {
+        durationInfo = '<span class="badge" style="background:#bee3f8;color:#2c5282;">♾️ Permanent</span>';
+      }
+      
       li.innerHTML = `
         <div>
           <strong>${video.filename}</strong>
           <span class="badge">User: ${video.display_user}</span>
           <span class="badge">Uploaded: ${uploadDate}</span>
+          ${durationInfo}
         </div>
         <button class="delete-btn" data-path="${video.storage_path}" data-id="${video.id}">Delete</button>
       `;
@@ -252,6 +273,7 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
   
   const targetUser = document.getElementById('targetUser').value;
   const file = e.target.video.files[0];
+  const duration = document.getElementById('videoDuration').value;
   
   if (!targetUser) {
     alert('Please select a display user');
@@ -280,17 +302,28 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       return;
     }
     
-    // Record in database
-    await supabase.from('videos').insert([{
+    // Record in database with duration
+    const videoData = {
       filename: file.name,
       storage_path: fileName,
       uploaded_by: sessionStorage.getItem('logged_user') || 'admin',
       display_user: targetUser
-    }]);
+    };
     
-    alert('Video uploaded successfully!');
+    // Add duration if specified
+    if (duration && parseInt(duration) > 0) {
+      videoData.duration_days = parseInt(duration);
+      videoData.days_used = 0;
+      videoData.is_expired = false;
+    }
+    
+    await supabase.from('videos').insert([videoData]);
+    
+    const durationMsg = duration ? ` (expires after ${duration} active days)` : '';
+    alert('Video uploaded successfully!' + durationMsg);
     e.target.video.value = '';
     document.getElementById('targetUser').value = '';
+    document.getElementById('videoDuration').value = '';
     await listVideos();
   } catch (e) {
     console.error('Unexpected upload error:', e);
