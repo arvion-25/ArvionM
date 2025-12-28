@@ -230,6 +230,7 @@
       font-family: 'Courier New', monospace;
       font-size: 12px;
       color: #718096;
+      display: none; /* Hidden since we removed the column */
     }
     
     .delete-btn {
@@ -365,6 +366,8 @@
             <option value="">Select Display User</option>
           </select>
           <input type="file" name="video" accept="video/*" required />
+          <input type="number" id="videoDuration" placeholder="Duration (days)" min="1" style="width: 150px;" />
+          <span style="font-size: 12px; color: #718096;">Optional: Video expires after X active days</span>
           <button type="submit">Upload</button>
         </form>
       </section>
