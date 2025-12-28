@@ -30,15 +30,23 @@
         return;
       }
 
-      // Get videos assigned to this user from database
+      // Track video usage for this user (count today as an active day)
+      try {
+        await supabase.rpc('track_video_usage', { username: currentUser });
+      } catch(e) {
+        console.warn('Failed to track video usage:', e);
+      }
+
+      // Get only active (non-expired) videos assigned to this user
       const { data: videoRecords, error: dbError } = await supabase
         .from('videos')
         .select('storage_path')
         .eq('display_user', currentUser)
+        .eq('is_expired', false)
         .order('uploaded_at', { ascending: false });
 
       if (dbError || !videoRecords || videoRecords.length === 0) {
-        document.body.innerHTML = '<div style="color:#fff;padding:20px">No videos assigned to this display.</div>';
+        document.body.innerHTML = '<div style="color:#fff;padding:20px">No active videos assigned to this display.</div>';
         return;
       }
 
